@@ -107,7 +107,7 @@ public class JdbcUtil {
                 Field[] fields = c.getDeclaredFields();
                 for(Field field :fields){
                     field.setAccessible(true);
-                    field.set(t,rs.getObject(field.getName(),field.getType()));
+                    field.set(t,rs.getObject(field.getName().toLowerCase(),field.getType()));
                 }
                 list.add(t);
             }
@@ -145,7 +145,7 @@ public class JdbcUtil {
                 Field[] fields = returnClass.getDeclaredFields();
                 for(Field field :fields){
                     field.setAccessible(true);
-                    field.set(t,rs.getObject(field.getName(),field.getType()));
+                    field.set(t,rs.getObject(field.getName().toLowerCase(),field.getType()));
                 }
                 list.add(t);
             }
@@ -222,7 +222,11 @@ public class JdbcUtil {
 
             Field[] fields = tClass.getDeclaredFields();
             for(int i=0;i<fields.length;i++){
-                sql.append(fields[i].getName().toLowerCase()).append(',');
+                if(fields[i].getName().toLowerCase().equals("describe")){
+                    sql.append('`').append(fields[i].getName().toLowerCase()).append('`').append(',');
+                }else{
+                    sql.append(fields[i].getName().toLowerCase()).append(',');
+                }
             }
             sql.deleteCharAt(sql.length()-1);
             sql.append(") values (");
@@ -247,54 +251,6 @@ public class JdbcUtil {
         return result;
     }
 
-
-    /**
-     * 插入数据 插到 tableName 表中 不包含主键（只能实现 一个 主键的情况）
-     * 要求 ：实体类字段名与 数据库字段 一一对应
-     *
-     * @param key 主键名
-     * @param tableName 表名
-     * @param t 实体类
-     * @param tClass 实体类 Class 对象
-     * @param <T> 实体类型
-     * @return int
-     */
-    public static <T> int insertWithOutKey(String key,String tableName ,T t, Class<T> tClass){
-        int result = 0;
-        try {
-            connection= getConnection();
-            StringBuilder sql= new StringBuilder("insert into ");
-            sql.append(tableName.toLowerCase()).append(" (");
-
-            Field[] fields = tClass.getDeclaredFields();
-            for(int i=0;i<fields.length;i++){
-                if(fields[i].getName().toLowerCase().equals(key.toLowerCase())){
-                    continue;
-                }
-                sql.append(fields[i].getName().toLowerCase()).append(',');
-            }
-            sql.deleteCharAt(sql.length()-1);
-            sql.append(") values (");
-            for(int i=0;i<fields.length-1;i++){
-                sql.append('?').append(',');
-            }
-            sql.deleteCharAt(sql.length()-1);
-            sql.append(')');
-
-            ps=connection.prepareStatement(sql.toString());
-            for(int i=1;i<fields.length;i++){
-                fields[i-1].setAccessible(true);
-                ps.setObject(i,fields[i-1].get(t));
-            }
-            result = ps.executeUpdate();
-
-        }catch (Exception e) {
-            e.printStackTrace();
-        }finally {
-            close(ps,connection);
-        }
-        return result;
-    }
 
     /**
      * 插入数据 拥堵自定义 sql
